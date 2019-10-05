@@ -5,7 +5,7 @@
 
 # PostgreSQL Server Exporter
 
-Prometheus exporter for PostgreSQL server metrics.
+Prometheus exporter for PostgreSQL server metrics using jackc's pgx.
 
 CI Tested PostgreSQL versions: `9.4`, `9.5`, `9.6`, `10`, `11`
 

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/lib/pq"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -18,7 +19,8 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/lib/pq"
+	//	"github.com/lib/pq"
+	"github.com/jackc/pgx"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
@@ -698,6 +700,7 @@ func dbToString(t interface{}) (string, bool) {
 }
 
 func parseFingerprint(url string) (string, error) {
+	config, err := pgx.ParseConfig(os.Getenv("DATABASE_URL"))
 	dsn, err := pq.ParseURL(url)
 	if err != nil {
 		dsn = url

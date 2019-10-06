@@ -62,7 +62,7 @@ var containerName = func() string {
 	if name := os.Getenv("CONTAINER_NAME"); name != "" {
 		return name
 	}
-	return "wrouesnel/postgres_exporter:latest"
+	return "oscarmherrera/pfx_exporter:latest"
 }()
 
 type Platform struct {

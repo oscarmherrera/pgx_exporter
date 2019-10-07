@@ -1,4 +1,4 @@
-package pgx_exporter
+package main
 
 import (
 	"crypto/sha256"
@@ -1440,16 +1440,16 @@ func contains(a []string, x string) bool {
 }
 
 func main() {
-	kingpin.Version(fmt.Sprintf("postgres_exporter %s (built with %s)\n", Version, runtime.Version()))
+	kingpin.Version(fmt.Sprintf("pgx_exporter %s (built with %s)\n", Version, runtime.Version()))
 	log.AddFlags(kingpin.CommandLine)
 	kingpin.Parse()
 
 	// landingPage contains the HTML served at '/'.
 	// TODO: Make this nicer and more informative.
 	var landingPage = []byte(`<html>
-	<head><title>Postgres exporter</title></head>
+	<head><title>PGX exporter</title></head>
 	<body>
-	<h1>Postgres exporter</h1>
+	<h1>PGX exporter</h1>
 	<p><a href='` + *metricPath + `'>Metrics</a></p>
 	</body>
 	</html>
@@ -1482,7 +1482,11 @@ func main() {
 	http.Handle(*metricPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "Content-Type:text/plain; charset=UTF-8") // nolint: errcheck
-		w.Write(landingPage)                                                     // nolint: errcheck
+		_, err := w.Write(landingPage)
+		if err != nil {
+			log.Errorf("Unable to write landing page: %s", err)
+		}
+
 	})
 
 	log.Infof("Starting Server: %s", *listenAddress)

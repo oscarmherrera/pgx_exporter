@@ -1,4 +1,4 @@
-package pgx_exporter
+package main
 
 import (
 	"fmt"
@@ -46,14 +46,12 @@ type pgSetting struct {
 }
 
 func (s *pgSetting) metric(labels prometheus.Labels) prometheus.Metric {
-	var (
-		err       error
-		name      = strings.Replace(s.name, ".", "_", -1)
-		unit      = s.unit // nolint: ineffassign
-		shortDesc = s.shortDesc
-		subsystem = "settings"
-		val       float64
-	)
+	var err error
+	var name = strings.Replace(s.name, ".", "_", -1)
+	var unit = s.unit // nolint:ineffassign
+	var shortDesc = s.shortDesc
+	var subsystem = "settings"
+	var val float64
 
 	switch s.vartype {
 	case "bool":

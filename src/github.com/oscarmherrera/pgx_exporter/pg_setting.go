@@ -48,7 +48,7 @@ type pgSetting struct {
 func (s *pgSetting) metric(labels prometheus.Labels) prometheus.Metric {
 	var err error
 	var name = strings.Replace(s.name, ".", "_", -1)
-	var unit = s.unit // nolint:ineffassign
+	var unit = s.unit // nolint: ineffassign
 	var shortDesc = s.shortDesc
 	var subsystem = "settings"
 	var val float64

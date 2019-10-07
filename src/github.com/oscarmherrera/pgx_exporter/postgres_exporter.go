@@ -28,7 +28,7 @@ import (
 
 // Version is set during build to the git describe version
 // (semantic version)-(commitish) form.
-var Version = "0.9.0"
+var Version = "0.5.1"
 
 var (
 	listenAddress          = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9187").Envar("PG_EXPORTER_WEB_LISTEN_ADDRESS").String()

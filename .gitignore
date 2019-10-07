@@ -12,6 +12,8 @@
 /.coverage
 /bin
 /release
+/out
+/inputs
 /*.prom
 /.metrics.*.*.prom
 /.metrics.*.*.prom.unique

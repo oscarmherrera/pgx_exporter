@@ -1,7 +1,6 @@
-package pgx_exporter
+package pgxexporter
 
 import (
-	"github.com/prometheus/common/log"
 	"sync"
 )
 
@@ -45,8 +44,9 @@ func (s *Servers) Close() {
 	s.m.Lock()
 	defer s.m.Unlock()
 	for _, server := range s.servers {
-		if err := server.Close(); err != nil {
-			log.Errorf("failed to close connection to %q: %v", server, err)
-		}
+		server.Close()
+		//if err := server.Close(); err != nil {
+		//	log.Errorf("failed to close connection to %q: %v", server, err)
+		//}
 	}
 }

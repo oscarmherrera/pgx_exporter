@@ -1,6 +1,7 @@
-package pgx_exporter
+package pgxexporter
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"github.com/blang/semver"
@@ -20,11 +21,14 @@ type ColumnMapping struct {
 }
 
 func NewColumnMapping(u ColumnUsage, desc string, mapping *map[string]float64, ver semver.Range) *ColumnMapping {
+
 	cm := &ColumnMapping{
 		usage:             u,
 		description:       desc,
-		mapping:           *mapping,
 		supportedVersions: ver,
+	}
+	if mapping != nil {
+		cm.mapping = *mapping
 	}
 	return cm
 }
@@ -121,8 +125,9 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 
 // Check and update the exporters query maps if the version has changed.
 func (e *Exporter) checkMapVersions(ch chan<- prometheus.Metric, server *Server) error {
+	ctx := context.Background()
 	log.Debugf("Querying Postgres Version on %q", server)
-	versionRow := server.db.QueryRow("SELECT version();")
+	versionRow := server.db.QueryRow(ctx, "SELECT version();")
 	var versionString string
 	err := versionRow.Scan(&versionString)
 	if err != nil {

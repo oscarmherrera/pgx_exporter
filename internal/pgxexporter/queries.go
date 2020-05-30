@@ -1,10 +1,12 @@
-package pgx_exporter
+package pgxexporter
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/blang/semver"
+	"github.com/jackc/pgproto3/v2"
+	pgx "github.com/jackc/pgx/v4"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"gopkg.in/yaml.v2"
@@ -244,7 +246,8 @@ func addQueries(content []byte, pgVersion semver.Version, server *Server) error 
 }
 
 func queryDatabases(server *Server) ([]string, error) {
-	rows, err := server.db.Query("SELECT datname FROM pg_database WHERE datallowconn = true AND datistemplate = false") // nolint: safesql
+	ctx := context.Background()
+	rows, err := server.db.Query(ctx, "SELECT datname FROM pg_database WHERE datallowconn = true AND datistemplate = false") // nolint: safesql
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving databases: %v", err)
 	}
@@ -266,6 +269,7 @@ func queryDatabases(server *Server) ([]string, error) {
 // Query within a namespace mapping and emit metrics. Returns fatal errors if
 // the scrape fails, and a slice of errors if they were non-fatal.
 func queryNamespaceMapping(ch chan<- prometheus.Metric, server *Server, namespace string, mapping MetricMapNamespace) ([]error, error) {
+	ctx := context.TODO()
 	// Check for a query override for this namespace
 	query, found := server.queryOverrides[namespace]
 
@@ -277,26 +281,40 @@ func queryNamespaceMapping(ch chan<- prometheus.Metric, server *Server, namespac
 	}
 
 	// Don't fail on a bad scrape of one metric
-	var rows *sql.Rows
+	var rows pgx.Rows
 	var err error
 
+	var fields []pgproto3.FieldDescription
+
 	if !found {
-		// I've no idea how to avoid this properly at the moment, but this is
-		// an admin tool so you're not injecting SQL right?
-		rows, err = server.db.Query(fmt.Sprintf("SELECT * FROM %s;", namespace)) // nolint: gas, safesql
-	} else {
-		rows, err = server.db.Query(query) // nolint: safesql
+		query = fmt.Sprintf("SELECT * FROM %s;", namespace)
 	}
+	var rowCount = 0
+	rows, err = server.db.Query(ctx, query) // nolint: safesql
 	if err != nil {
 		return []error{}, fmt.Errorf("Error running query on database %q: %s %v", server, namespace, err)
 	}
 	defer rows.Close() // nolint: errcheck
+	for rows.Next() {
+		if rowCount == 0 {
+			fields = rows.FieldDescriptions()
+			break
+		}
+		rowCount++
+	}
+
+	//defer rows.Close() // nolint: errcheck
 
 	var columnNames []string
-	columnNames, err = rows.Columns()
-	if err != nil {
-		return []error{}, errors.New(fmt.Sprintln("Error retrieving column list for: ", namespace, err))
+
+	for _, v := range fields {
+		columnNames = append(columnNames, string(v.Name))
+
 	}
+	//columnNames, err = rows.Columns()
+	//if err != nil {
+	//	return []error{}, errors.New(fmt.Sprintln("Error retrieving column list for: ", namespace, err))
+	//}
 
 	// Make a lookup map for the column indices
 	var columnIdx = make(map[string]int, len(columnNames))
@@ -311,9 +329,9 @@ func queryNamespaceMapping(ch chan<- prometheus.Metric, server *Server, namespac
 	}
 
 	nonfatalErrors := []error{}
-
 	for rows.Next() {
-		err = rows.Scan(scanArgs...)
+		columnData, err = rows.Values()
+		//		err = rows.Scan(scanArgs...)
 		if err != nil {
 			return []error{}, errors.New(fmt.Sprintln("Error retrieving rows:", namespace, err))
 		}

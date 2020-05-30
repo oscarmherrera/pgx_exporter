@@ -1,4 +1,4 @@
-package pgx_exporter
+package pgxexporter
 
 import "strings"
 

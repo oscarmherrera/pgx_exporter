@@ -1,6 +1,7 @@
-package pgx_exporter
+package pgxexporter
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -24,7 +25,7 @@ func querySettings(ch chan<- prometheus.Metric, server *Server) error {
 	// types in normaliseUnit() below
 	query := "SELECT name, setting, COALESCE(unit, ''), short_desc, vartype FROM pg_settings WHERE vartype IN ('bool', 'integer', 'real');"
 
-	rows, err := server.db.Query(query)
+	rows, err := server.db.Query(context.Background(), query)
 	if err != nil {
 		return fmt.Errorf("Error running query on database %q: %s %v", server, namespace, err)
 	}

@@ -1,4 +1,4 @@
-package pgx_exporter
+package pgxexporter
 
 import (
 	"errors"
@@ -71,10 +71,12 @@ func stringToColumnUsage(s string) (ColumnUsage, error) {
 	return u, err
 }
 
-// Convert database.sql types to float64s for Prometheus consumption. Null types are mapped to NaN. string and []byte
+// DBToFloat64 Convert database.sql types to float64s for Prometheus consumption. Null types are mapped to NaN. string and []byte
 // types are mapped as NaN and !ok
 func DBToFloat64(t interface{}) (float64, bool) {
 	switch v := t.(type) {
+	case int32:
+		return float64(v), true
 	case int64:
 		return float64(v), true
 	case float64:
@@ -109,9 +111,11 @@ func DBToFloat64(t interface{}) (float64, bool) {
 	}
 }
 
-// Convert database.sql to string for Prometheus labels. Null types are mapped to empty strings.
+// DBToString Convert database.sql to string for Prometheus labels. Null types are mapped to empty strings.
 func DBToString(t interface{}) (string, bool) {
 	switch v := t.(type) {
+	case int32:
+		return fmt.Sprintf("%v", v), true
 	case int64:
 		return fmt.Sprintf("%v", v), true
 	case float64:
@@ -140,7 +144,7 @@ func parseFingerprint(url string) (string, error) {
 
 	if err != nil {
 		log.Errorf("Unable to parse URI %s.", url)
-
+		return "", err
 	}
 
 	var fingerprint string

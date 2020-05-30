@@ -1,7 +1,7 @@
 products:
   pgx_exporter:
     build:
-      main-pkg: src/github.com/oscarmherrera/pgx_exporter
+      main-pkg: cmd/pgx_exporter
       os-archs:
         - os: darwin
           arch: amd64

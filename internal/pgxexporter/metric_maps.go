@@ -1,4 +1,4 @@
-package pgx_exporter
+package pgxexporter
 
 import (
 	"fmt"
@@ -28,7 +28,7 @@ func (mmn *MetricMapNamespace) GetMetricMap(metricMapNamespaces *map[string]Metr
 }
 
 func GetNamespace(metricMapNamespaces *map[string]MetricMapNamespace, mapName string) *MetricMapNamespace {
-	var maps map[string]MetricMapNamespace = *metricMapNamespaces
+	var maps = *metricMapNamespaces
 	namespace := maps[mapName]
 
 	return &namespace

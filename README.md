@@ -99,23 +99,23 @@ The following environment variables configure the exporter:
 * `DATA_SOURCE_PASS_FILE`
   The same as above but reads the password from a file.
 
-* `PG_EXPORTER_WEB_LISTEN_ADDRESS`
+* `PGXEXPORTER_WEB_LISTEN_ADDRESS`
   Address to listen on for web interface and telemetry. Default is `:9187`.
 
-* `PG_EXPORTER_WEB_TELEMETRY_PATH`
+* `PGXEXPORTER_WEB_TELEMETRY_PATH`
   Path under which to expose metrics. Default is `/metrics`.
 
-* `PG_EXPORTER_DISABLE_DEFAULT_METRICS`
+* `PGXEXPORTER_DISABLE_DEFAULT_METRICS`
   Use only metrics supplied from `queries.yaml`. Value can be `true` or `false`. Default is `false`.
 
-* `PG_EXPORTER_DISABLE_SETTINGS_METRICS`
+* `PGXEXPORTER_DISABLE_SETTINGS_METRICS`
   Use the flag if you don't want to scrape `pg_settings`. Value can be `true` or `false`. Defauls is `false`.
 
-* `PG_EXPORTER_EXTEND_QUERY_PATH`
+* `PGXEXPORTER_EXTEND_QUERY_PATH`
   Path to a YAML file containing custom queries to run. Check out [`queries.yaml`](queries.yaml)
   for examples of the format.
 
-* `PG_EXPORTER_CONSTANT_LABELS`
+* `PGXEXPORTER_CONSTANT_LABELS`
   Labels to set in all metrics. A list of `label=value` pairs, separated by commas.
 
 Settings set by environment variables starting with `PG_` will be overwritten by the corresponding CLI flag if given.

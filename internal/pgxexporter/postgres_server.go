@@ -1,9 +1,11 @@
-package pgx_exporter
+package pgxexporter
 
 import (
-	"database/sql"
+	"context"
+	//	"database/sql"
 	"fmt"
 	"github.com/blang/semver"
+	pgx "github.com/jackc/pgx/v4"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"sync"
@@ -15,7 +17,8 @@ type ServerOpt func(*Server)
 // Server describes a connection to Postgres.
 // Also it contains metrics map and query overrides.
 type Server struct {
-	db     *sql.DB
+	db *pgx.Conn
+	//	db     *sql.DB
 	labels prometheus.Labels
 
 	// Last version used to calculate metric map. If mismatch on scrape,
@@ -44,17 +47,24 @@ func NewServer(dsn string, opts ...ServerOpt) (*Server, error) {
 		return nil, err
 	}
 
-	db, err := sql.Open("postgres", dsn)
+	config, err := pgx.ParseConfig(dsn)
+
+	conn, err := pgx.ConnectConfig(context.TODO(), config)
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
+
+	//db, err := sql.Open("postgres", dsn)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//db.SetMaxOpenConns(1)
+	//db.SetMaxIdleConns(1)
 
 	log.Infof("Established new database connection to %q.", fingerprint)
 
 	s := &Server{
-		db: db,
+		db: conn,
 		labels: prometheus.Labels{
 			serverLabelName: fingerprint,
 		},
@@ -68,16 +78,20 @@ func NewServer(dsn string, opts ...ServerOpt) (*Server, error) {
 }
 
 // Close disconnects from Postgres.
-func (s *Server) Close() error {
-	return s.db.Close()
+func (s *Server) Close() {
+	err := s.db.Close(context.Background())
+	if err != nil {
+		log.Error("error closing db connection", err)
+	}
 }
 
 // Ping checks connection availability and possibly invalidates the connection if it fails.
 func (s *Server) Ping() error {
-	if err := s.db.Ping(); err != nil {
-		if cerr := s.Close(); cerr != nil {
-			log.Errorf("Error while closing non-pinging DB connection to %q: %v", s, cerr)
-		}
+
+	//	defer conn.Close()
+
+	if _, err := s.db.Exec(context.Background(), "select 1"); err != nil {
+		log.Errorf("Error while closing non-pinging DB connection to %q: %v", s, err)
 		return err
 	}
 	return nil

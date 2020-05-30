@@ -20,7 +20,7 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 type IntegrationSuite struct {
-	e *Exporter
+	e *pgx_exporter.Exporter
 }
 
 var _ = Suite(&IntegrationSuite{})
@@ -29,7 +29,7 @@ func (s *IntegrationSuite) SetUpSuite(c *C) {
 	dsn := os.Getenv("DATA_SOURCE_NAME")
 	c.Assert(dsn, Not(Equals), "")
 
-	exporter := NewExporter(strings.Split(dsn, ","))
+	exporter := pgx_exporter.NewExporter(strings.Split(dsn, ","))
 	c.Assert(exporter, NotNil)
 	// Assign the exporter to the suite
 	s.e = exporter
@@ -48,7 +48,7 @@ func (s *IntegrationSuite) TestAllNamespacesReturnResults(c *C) {
 
 	for _, dsn := range s.e.dsn {
 		// Open a database connection
-		server, err := NewServer(dsn)
+		server, err := pgx_exporter.NewServer(dsn)
 		c.Assert(server, NotNil)
 		c.Assert(err, IsNil)
 
@@ -56,14 +56,14 @@ func (s *IntegrationSuite) TestAllNamespacesReturnResults(c *C) {
 		err = s.e.checkMapVersions(ch, server)
 		c.Assert(err, IsNil)
 
-		err = querySettings(ch, server)
+		err = pgx_exporter2.querySettings(ch, server)
 		if !c.Check(err, Equals, nil) {
 			fmt.Println("## ERRORS FOUND")
 			fmt.Println(err)
 		}
 
 		// This should never happen in our test cases.
-		errMap := queryNamespaceMappings(ch, server)
+		errMap := pgx_exporter.queryNamespaceMappings(ch, server)
 		if !c.Check(len(errMap), Equals, 0) {
 			fmt.Println("## NAMESPACE ERRORS FOUND")
 			for namespace, err := range errMap {
@@ -86,12 +86,12 @@ func (s *IntegrationSuite) TestInvalidDsnDoesntCrash(c *C) {
 	}()
 
 	// Send a bad DSN
-	exporter := NewExporter([]string{"invalid dsn"})
+	exporter := pgx_exporter.NewExporter([]string{"invalid dsn"})
 	c.Assert(exporter, NotNil)
 	exporter.scrape(ch)
 
 	// Send a DSN to a non-listening port.
-	exporter = NewExporter([]string{"postgresql://nothing:nothing@127.0.0.1:1/nothing"})
+	exporter = pgx_exporter.NewExporter([]string{"postgresql://nothing:nothing@127.0.0.1:1/nothing"})
 	c.Assert(exporter, NotNil)
 	exporter.scrape(ch)
 }
@@ -109,13 +109,13 @@ func (s *IntegrationSuite) TestUnknownMetricParsingDoesntCrash(c *C) {
 	dsn := os.Getenv("DATA_SOURCE_NAME")
 	c.Assert(dsn, Not(Equals), "")
 
-	exporter := NewExporter(strings.Split(dsn, ","))
+	exporter := pgx_exporter.NewExporter(strings.Split(dsn, ","))
 	c.Assert(exporter, NotNil)
 
 	// Convert the default maps into a list of empty maps.
-	emptyMaps := make(map[string]map[string]ColumnMapping, 0)
+	emptyMaps := make(map[string]map[string]pgx_exporter.ColumnMapping, 0)
 	for k := range exporter.builtinMetricMaps {
-		emptyMaps[k] = map[string]ColumnMapping{}
+		emptyMaps[k] = map[string]pgx_exporter.ColumnMapping{}
 	}
 	exporter.builtinMetricMaps = emptyMaps
 

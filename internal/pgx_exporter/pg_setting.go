@@ -1,4 +1,4 @@
-package main
+package pgx_exporter
 
 import (
 	"fmt"
@@ -9,6 +9,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 )
+
+func QuerySettings(ch chan<- prometheus.Metric, server *Server) error {
+	return querySettings(ch, server)
+}
 
 // Query the pg_settings view containing runtime variables
 func querySettings(ch chan<- prometheus.Metric, server *Server) error {

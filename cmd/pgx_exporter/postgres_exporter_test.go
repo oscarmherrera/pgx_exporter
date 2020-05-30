@@ -3,6 +3,7 @@
 package main
 
 import (
+	"github.com/oscarmherrera/pgx_exporter/internal/pgx_exporter"
 	"os"
 	"reflect"
 	"testing"
@@ -25,23 +26,24 @@ func (s *FunctionalSuite) SetUpSuite(c *C) {
 }
 
 func (s *FunctionalSuite) TestSemanticVersionColumnDiscard(c *C) {
-	testMetricMap := map[string]map[string]ColumnMapping{
+
+	testMetricMap := map[string]map[string]pgx_exporter.ColumnMapping{
 		"test_namespace": {
-			"metric_which_stays":    {COUNTER, "This metric should not be eliminated", nil, nil},
-			"metric_which_discards": {COUNTER, "This metric should be forced to DISCARD", nil, nil},
+			"metric_which_stays":    *pgx_exporter.NewColumnMapping(pgx_exporter.COUNTER, "This metric should not be eliminated", nil, nil), //{pgx_exporter.COUNTER, "This metric should not be eliminated", nil, nil},
+			"metric_which_discards": *pgx_exporter.NewColumnMapping(pgx_exporter.COUNTER, "This metric should be forced to DISCARD", nil, nil),
 		},
 	}
 
 	{
 		// No metrics should be eliminated
-		resultMap := makeDescMap(semver.MustParse("0.0.1"), prometheus.Labels{}, testMetricMap)
+		resultMap := pgx_exporter.MakeDescMap(semver.MustParse("0.0.1"), prometheus.Labels{}, testMetricMap)
 		c.Check(
-			resultMap["test_namespace"].columnMappings["metric_which_stays"].discard,
+			pgx_exporter.GetNamespace(&resultMap, "test_namespace").GetColumnMapping("metric_which_stays").GetDiscard(),
 			Equals,
 			false,
 		)
 		c.Check(
-			resultMap["test_namespace"].columnMappings["metric_which_discards"].discard,
+			pgx_exporter.GetNamespace(&resultMap, "test_namespace").GetColumnMapping("metric_which_discards").GetDiscard(),
 			Equals,
 			false,
 		)
@@ -51,18 +53,20 @@ func (s *FunctionalSuite) TestSemanticVersionColumnDiscard(c *C) {
 	{
 		// Update the map so the discard metric should be eliminated
 		discardableMetric := testMetricMap["test_namespace"]["metric_which_discards"]
-		discardableMetric.supportedVersions = semver.MustParseRange(">0.0.1")
+
+		discardableMetric.SetSupportedVersions(semver.MustParseRange(">0.0.1"))
 		testMetricMap["test_namespace"]["metric_which_discards"] = discardableMetric
 
 		// Discard metric should be discarded
-		resultMap := makeDescMap(semver.MustParse("0.0.1"), prometheus.Labels{}, testMetricMap)
+		resultMap := pgx_exporter.MakeDescMap(semver.MustParse("0.0.1"), prometheus.Labels{}, testMetricMap)
+
 		c.Check(
-			resultMap["test_namespace"].columnMappings["metric_which_stays"].discard,
+			pgx_exporter.GetNamespace(&resultMap, "test_namespace").GetColumnMapping("metric_which_stays").GetDiscard(),
 			Equals,
 			false,
 		)
 		c.Check(
-			resultMap["test_namespace"].columnMappings["metric_which_discards"].discard,
+			pgx_exporter.GetNamespace(&resultMap, "test_namespace").GetColumnMapping("metric_which_discards").GetDiscard(),
 			Equals,
 			true,
 		)
@@ -72,18 +76,19 @@ func (s *FunctionalSuite) TestSemanticVersionColumnDiscard(c *C) {
 	{
 		// Update the map so the discard metric should be kept but has a version
 		discardableMetric := testMetricMap["test_namespace"]["metric_which_discards"]
-		discardableMetric.supportedVersions = semver.MustParseRange(">0.0.1")
+
+		discardableMetric.SetSupportedVersions(semver.MustParseRange(">0.0.1"))
 		testMetricMap["test_namespace"]["metric_which_discards"] = discardableMetric
 
 		// Discard metric should be discarded
-		resultMap := makeDescMap(semver.MustParse("0.0.2"), prometheus.Labels{}, testMetricMap)
+		resultMap := pgx_exporter.MakeDescMap(semver.MustParse("0.0.2"), prometheus.Labels{}, testMetricMap)
 		c.Check(
-			resultMap["test_namespace"].columnMappings["metric_which_stays"].discard,
+			pgx_exporter.GetNamespace(&resultMap, "test_namespace").GetColumnMapping("metric_which_stays").GetDiscard(),
 			Equals,
 			false,
 		)
 		c.Check(
-			resultMap["test_namespace"].columnMappings["metric_which_discards"].discard,
+			pgx_exporter.GetNamespace(&resultMap, "test_namespace").GetColumnMapping("metric_which_discards").GetDiscard(),
 			Equals,
 			false,
 		)
@@ -109,7 +114,7 @@ func (s *FunctionalSuite) TestEnvironmentSettingWithSecretsFiles(c *C) {
 
 	var expected = "postgresql://custom_username$&+,%2F%3A;=%3F%40:custom_password$&+,%2F%3A;=%3F%40@localhost:5432/?sslmode=disable"
 
-	dsn := getDataSources()
+	dsn := pgx_exporter.GetDataSources()
 	if len(dsn) == 0 {
 		c.Errorf("Expected one data source, zero found")
 	}
@@ -125,7 +130,7 @@ func (s *FunctionalSuite) TestEnvironmentSettingWithDns(c *C) {
 	c.Assert(err, IsNil)
 	defer UnsetEnvironment(c, "DATA_SOURCE_NAME")
 
-	dsn := getDataSources()
+	dsn := pgx_exporter.GetDataSources()
 	if len(dsn) == 0 {
 		c.Errorf("Expected one data source, zero found")
 	}
@@ -152,7 +157,7 @@ func (s *FunctionalSuite) TestEnvironmentSettingWithDnsAndSecrets(c *C) {
 	c.Assert(err, IsNil)
 	defer UnsetEnvironment(c, "DATA_SOURCE_PASS")
 
-	dsn := getDataSources()
+	dsn := pgx_exporter.GetDataSources()
 	if len(dsn) == 0 {
 		c.Errorf("Expected one data source, zero found")
 	}
@@ -183,7 +188,7 @@ func (s *FunctionalSuite) TestPostgresVersionParsing(c *C) {
 	}
 
 	for _, cs := range cases {
-		ver, err := parseVersion(cs.input)
+		ver, err := pgx_exporter.ParseVersion(cs.input)
 		c.Assert(err, IsNil)
 		c.Assert(ver.String(), Equals, cs.expected)
 	}
@@ -214,7 +219,7 @@ func (s *FunctionalSuite) TestParseFingerprint(c *C) {
 	}
 
 	for _, cs := range cases {
-		f, err := parseFingerprint(cs.url)
+		f, err := pgx_exporter.ParseFingerprint(cs.url)
 		if cs.err == "" {
 			c.Assert(err, IsNil)
 		} else {
@@ -260,7 +265,7 @@ func (s *FunctionalSuite) TestParseConstLabels(c *C) {
 	}
 
 	for _, cs := range cases {
-		labels := parseConstLabels(cs.s)
+		labels := pgx_exporter.ParseConstLabels(cs.s)
 		if !reflect.DeepEqual(labels, cs.labels) {
 			c.Fatalf("labels not equal (%v -> %v)", labels, cs.labels)
 		}
@@ -298,11 +303,11 @@ func (s *FunctionalSuite) TestBooleanConversionToValueAndString(c *C) {
 	}
 
 	for _, cs := range cases {
-		value, ok := dbToFloat64(cs.input)
+		value, ok := pgx_exporter.DBToFloat64(cs.input)
 		c.Assert(value, Equals, cs.expectedValue)
 		c.Assert(ok, Equals, cs.expectedOK)
 
-		str, ok := dbToString(cs.input)
+		str, ok := pgx_exporter.DBToString(cs.input)
 		c.Assert(str, Equals, cs.expectedString)
 		c.Assert(ok, Equals, cs.expectedOK)
 	}

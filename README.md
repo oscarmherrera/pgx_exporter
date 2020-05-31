@@ -15,7 +15,7 @@ docker example.
 # Start an example database
 docker run --net=host -it --rm -e POSTGRES_PASSWORD=password postgres
 # Connect to it
-docker run --net=host -e DATA_SOURCE_NAME="postgresql://postgres:password@localhost:5432/postgres?sslmode=disable" wrouesnel/postgres_exporter
+docker run --net=host -e DATA_SOURCE_NAME="postgresql://postgres:password@localhost:5432/postgres?sslmode=disable" gcr.io/pgx_exporter
 ```
 
 ## Building and running
@@ -33,7 +33,7 @@ $ ./pgx_exporter <flags>
 To build the dockerfile, run `go run mage.go docker`.
 
 This will build the default container image as `gcr.io/edb-oscar/pgx_exporter.ubi:latest`. This
-is a minimal docker image containing *just* postgres_exporter. By default no SSL
+is a minimal docker image containing *just* pgx_exporter. By default no SSL
 certificates are included, if you need to use SSL you should either bind-mount
 `/etc/ssl/certs/ca-certificates.crt` or derive a new image containing them.
 
@@ -126,11 +126,11 @@ must be set via the `DATA_SOURCE_NAME` environment variable.
 
 For running it locally on a default Debian/Ubuntu install, this will work (transpose to init script as appropriate):
 
-    sudo -u postgres DATA_SOURCE_NAME="user=postgres host=/var/run/postgresql/ sslmode=disable" postgres_exporter
+    sudo -u postgres DATA_SOURCE_NAME="user=postgres host=/var/run/postgresql/ sslmode=disable" pgx_exporter
 
 Also, you can set a list of sources to scrape different instances from the one exporter setup. Just define a comma separated string.
 
-    sudo -u postgres DATA_SOURCE_NAME="port=5432,port=6432" postgres_exporter
+    sudo -u postgres DATA_SOURCE_NAME="port=5432,port=6432" pgx_exporter
 
 See the [github.com/lib/pq](http://github.com/lib/pq) module for other ways to format the connection string.
 
@@ -204,7 +204,7 @@ ALTER USER pgx_exporter SET SEARCH_PATH TO pgx_exporter,pg_catalog;
 
 -- If deploying as non-superuser (for example in AWS RDS), uncomment the GRANT
 -- line below and replace <MASTER_USER> with your root user.
--- GRANT postgres_exporter TO <MASTER_USER>;
+-- GRANT pgx_exporter TO <MASTER_USER>;
 CREATE SCHEMA IF NOT EXISTS pgx_exporter;
 GRANT USAGE ON SCHEMA pgx_exporter TO pgx_exporter;
 
@@ -230,11 +230,11 @@ CREATE OR REPLACE VIEW pgx_exporter.pg_stat_replication
 AS
   SELECT * FROM get_pg_stat_replication();
 
-GRANT SELECT ON pgx_exporter.pg_stat_replication TO postgres_exporter;
+GRANT SELECT ON pgx_exporter.pg_stat_replication TO pgx_exporter;
 ```
 
 > **NOTE**
 > <br />Remember to use `postgres` database name in the connection string:
 > ```
-> DATA_SOURCE_NAME=postgresql://postgres_exporter:password@localhost:5432/postgres?sslmode=disable
+> DATA_SOURCE_NAME=postgresql://pgx_exporter:password@localhost:5432/postgres?sslmode=disable
 > ```

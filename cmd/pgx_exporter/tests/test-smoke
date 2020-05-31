@@ -12,15 +12,15 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 METRICS_DIR=$(pwd)
 
 # Read the absolute path to the exporter
-postgres_exporter="$1"
+pgx_exporter="$1"
 test_binary="$2"
 export POSTGRES_PASSWORD=postgres
 exporter_port=9187
 
-echo "Exporter Binary: $postgres_exporter" 1>&2
+echo "Exporter Binary: pgx_exporter" 1>&2
 echo "Test Binary: $test_binary" 1>&2
 
-[ -z "$postgres_exporter" ] && echo "Missing exporter binary" && exit 1
+[ -z "pgx_exporter" ] && echo "Missing exporter binary" && exit 1
 [ -z "$test_binary" ] && echo "Missing test binary" && exit 1
 
 cd "$DIR" || exit 1
@@ -76,7 +76,7 @@ wait_for_exporter() {
 
 smoketest_postgres() {
     local version=$1
-    local CONTAINER_NAME=postgres_exporter-test-smoke
+    local CONTAINER_NAME=pgx_exporter-test-smoke
     local TIMEOUT=30
     local IMAGE_NAME=postgres
     
@@ -98,7 +98,7 @@ smoketest_postgres() {
     DATA_SOURCE_NAME="postgresql://postgres:$POSTGRES_PASSWORD@$standalone_ip:5432/?sslmode=disable" $test_binary || exit $?
 
     # Extract a raw metric list.
-    DATA_SOURCE_NAME="postgresql://postgres:$POSTGRES_PASSWORD@$standalone_ip:5432/?sslmode=disable" $postgres_exporter \
+    DATA_SOURCE_NAME="postgresql://postgres:$POSTGRES_PASSWORD@$standalone_ip:5432/?sslmode=disable" pgx_exporter \
         --log.level=debug --web.listen-address=:$exporter_port &
     exporter_pid=$!
     # shellcheck disable=SC2064
@@ -149,7 +149,7 @@ smoketest_postgres() {
     
     DATA_SOURCE_NAME="postgresql://postgres:$POSTGRES_PASSWORD@$master_ip:5432/?sslmode=disable" $test_binary || exit $?
     
-    DATA_SOURCE_NAME="postgresql://postgres:$POSTGRES_PASSWORD@$master_ip:5432/?sslmode=disable" $postgres_exporter \
+    DATA_SOURCE_NAME="postgresql://postgres:$POSTGRES_PASSWORD@$master_ip:5432/?sslmode=disable" pgx_exporter \
         --log.level=debug --web.listen-address=:$exporter_port &
     exporter_pid=$!
     # shellcheck disable=SC2064

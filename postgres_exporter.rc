@@ -1,36 +1,36 @@
 #!/bin/sh
 
-# PROVIDE: postgres_exporter
+# PROVIDE: pgx_export
 # REQUIRE: LOGIN
 # KEYWORD: shutdown
 #
-# rc-script for postgres_exporter 
+# rc-script for pgx_export
 #
 #
 # Add the following lines to /etc/rc.conf.local or /etc/rc.conf
 # to enable this service:
 #
-# postgres_exporter_enable (bool):          Set to NO by default.
-#               Set it to YES to enable postgres_exporter.
-# postgres_exporter_user (string):          Set user that postgres_exporter will run under
+# pgx_exporter_enable (bool):          Set to NO by default.
+#               Set it to YES to enable pgx_export.
+# pgx_exporter_user (string):          Set user that pgx_export will run under
 #               Default is "nobody".
-# postgres_exporter_group (string):         Set group that postgres_exporter will run under
+# pgx_export_group (string):         Set group that pgx_export will run under
 #               Default is "nobody".
-# postgres_exporter_args (string):          Set extra arguments to pass to postgres_exporter
+# pgx_export_args (string):          Set extra arguments to pass to pgx_export
 #               Default is "".
-# postgres_exporter_listen_address (string):Set ip:port to listen on for web interface and telemetry.
+# pgx_export_listen_address (string):Set ip:port to listen on for web interface and telemetry.
 #		Defaults to ":9187"
-# postgres_exporter_pg_user (string):	    Set the Postgres database user
-#		Defaults to "postgres_exporter"
-# postgres_exporter_pg_pass (string):	    Set the Postgres datase password
+# pgx_export_pg_user (string):	    Set the Postgres database user
+#		Defaults to "pgx_export"
+# pgx_export_pg_pass (string):	    Set the Postgres datase password
 #		Default is empty
-# postgres_exporter_pg_host (string):	    Set the Postgres database server
+# pgx_export_pg_host (string):	    Set the Postgres database server
 #		Defaults to "localhost"
-# postgres_exporter_pg_port (string):  	    Set the Postgres database port
+# pgx_export_pg_port (string):  	    Set the Postgres database port
 #		Defaults to "5432"
 
-# Add extra arguments via "postgres_exporter_args" which could be choosen from:
-# (see $ postgres_exporter --help)
+# Add extra arguments via "pgx_exporter_args" which could be choosen from:
+# (see $ pgx_export --help)
 #
 #  -dumpmaps
 #    	Do not run, simply dump the maps.
@@ -50,37 +50,37 @@
 
 . /etc/rc.subr
 
-name=postgres_exporter
-rcvar=postgres_exporter_enable
+name=pgx_exporter
+rcvar=pgx_export_enable
 
 load_rc_config $name
 
-: ${postgres_exporter_enable:="NO"}
-: ${postgres_exporter_user:="nobody"}
-: ${postgres_exporter_group:="nobody"}
-: ${postgres_exporter_args:=""}
-: ${postgres_exporter_listen_address:=":9187"}
-: ${postgres_exporter_pg_user:="postgres_exporter"}
-: ${postgres_exporter_pg_pass:=""}
-: ${postgres_exporter_pg_host:="localhost"}
-: ${postgres_exporter_pg_port:="5432"}
+: ${pgx_export_enable:="NO"}
+: ${pgx_export_user:="nobody"}
+: ${pgx_export_group:="nobody"}
+: ${pgx_export_args:=""}
+: ${pgx_export_listen_address:=":9187"}
+: ${pgx_export_pg_user:="pgx_export"}
+: ${pgx_export_pg_pass:=""}
+: ${pgx_export_pg_host:="localhost"}
+: ${pgx_export_pg_port:="5432"}
 
-postgres_exporter_data_source_name="postgresql://${postgres_exporter_pg_user}:${postgres_exporter_pg_pass}@${postgres_exporter_pg_host}:${postgres_exporter_pg_port}/postgres?sslmode=disable"
+pgx_export_data_source_name="postgresql://${pgx_export_pg_user}:${pgx_export_pg_pass}@${pgx_export_pg_host}:${pgx_export_pg_port}/postgres?sslmode=disable"
 
 
-pidfile=/var/run/postgres_exporter.pid
+pidfile=/var/run/pgx_export.pid
 command="/usr/sbin/daemon"
-procname="/usr/local/bin/postgres_exporter"
-command_args="-p ${pidfile} /usr/bin/env DATA_SOURCE_NAME="${postgres_exporter_data_source_name}" ${procname} \
-    -web.listen-address=${postgres_exporter_listen_address} \
-    ${postgres_exporter_args}"
+procname="/usr/local/bin/pgx_export"
+command_args="-p ${pidfile} /usr/bin/env DATA_SOURCE_NAME="${pgx_export_data_source_name}" ${procname} \
+    -web.listen-address=${pgx_export_listen_address} \
+    ${pgx_export_args}"
 
-start_precmd=postgres_exporter_startprecmd
+start_precmd=pgx_export_startprecmd
 
-postgres_exporter_startprecmd()
+pgx_export_startprecmd()
 {
     if [ ! -e ${pidfile} ]; then
-        install -o ${postgres_exporter_user} -g ${postgres_exporter_group} /dev/null ${pidfile};
+        install -o ${pgx_export_user} -g ${pgx_export_group} /dev/null ${pidfile};
     fi
 }
 

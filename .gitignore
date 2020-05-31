@@ -1,6 +1,6 @@
 /.build
-/postgres_exporter
-/postgres_exporter_integration_test
+/pgx_exporter
+/pgx_exporter_integration_test
 *.tar.gz
 *.test
 *-stamp

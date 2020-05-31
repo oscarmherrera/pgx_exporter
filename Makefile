@@ -17,7 +17,7 @@ $(GOMETALINTER):
 lint: $(GOMETALINTER)
 	gometalinter --disable=gotype ./... --vendor
 
-BINARY := pg_exporter
+BINARY := pgx_exporter
 VERSION ?= 1.0.0
 PLATFORMS := linux darwin
 os = $(word 1, $@)

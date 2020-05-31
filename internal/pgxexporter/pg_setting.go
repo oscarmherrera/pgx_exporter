@@ -18,6 +18,12 @@ func QuerySettings(ch chan<- prometheus.Metric, server *Server) error {
 // Query the pg_settings view containing runtime variables
 func querySettings(ch chan<- prometheus.Metric, server *Server) error {
 	log.Debugf("Querying pg_setting view on %q", server)
+	conn, err := server.db.Acquire(context.Background())
+	if err != nil {
+		log.Errorf("unable to acquire db connect: %v", err)
+		return err
+	}
+	defer conn.Release()
 
 	// pg_settings docs: https://www.postgresql.org/docs/current/static/view-pg-settings.html
 	//
@@ -25,7 +31,7 @@ func querySettings(ch chan<- prometheus.Metric, server *Server) error {
 	// types in normaliseUnit() below
 	query := "SELECT name, setting, COALESCE(unit, ''), short_desc, vartype FROM pg_settings WHERE vartype IN ('bool', 'integer', 'real');"
 
-	rows, err := server.db.Query(context.Background(), query)
+	rows, err := conn.Conn().Query(context.Background(), query)
 	if err != nil {
 		return fmt.Errorf("Error running query on database %q: %s %v", server, namespace, err)
 	}

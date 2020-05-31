@@ -1,17 +1,17 @@
-[![Build Status](https://travis-ci.org/wrouesnel/postgres_exporter.svg?branch=master)](https://travis-ci.org/wrouesnel/postgres_exporter)
-[![Coverage Status](https://coveralls.io/repos/github/wrouesnel/postgres_exporter/badge.svg?branch=master)](https://coveralls.io/github/wrouesnel/postgres_exporter?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/wrouesnel/postgres_exporter)](https://goreportcard.com/report/github.com/wrouesnel/postgres_exporter)
-[![Docker Pulls](https://img.shields.io/docker/pulls/wrouesnel/postgres_exporter.svg)](https://hub.docker.com/r/wrouesnel/postgres_exporter/tags)
 
 # PostgreSQL Server Exporter
 
 Prometheus exporter for PostgreSQL server metrics using jackc's pgx.
 
-CI Tested PostgreSQL versions: `9.4`, `9.5`, `9.6`, `10`, `11`
+Tested on PostgreSQL distributions of EDB Advanced Server and PostgreSQL community on 
+versions: `9.4`, `9.5`, `9.6`, `10`, `11`, `12`
+In both VMs and Containers it supports the 
 
 ## Quick Start
-This package is available for Docker:
+This package is built for kubernetes but can run anywhere really:
 ```
+docker example.
+
 # Start an example database
 docker run --net=host -it --rm -e POSTGRES_PASSWORD=password postgres
 # Connect to it
@@ -20,26 +20,25 @@ docker run --net=host -e DATA_SOURCE_NAME="postgresql://postgres:password@localh
 
 ## Building and running
 
-The build system is based on [Mage](https://magefile.org)
-
-The default make file behavior is to build the binary:
+The build system is godel
 ```
-$ go get github.com/wrouesnel/postgres_exporter
-$ cd ${GOPATH-$HOME/go}/src/github.com/wrouesnel/postgres_exporter
-$ go run mage.go binary
-$ export DATA_SOURCE_NAME="postgresql://login:password@hostname:port/dbname"
-$ ./postgres_exporter <flags>
+./godelw build
+export DATA_SOURCE_USER=<login>;
+export DATA_SOURCE_PASS=<password>;
+export DATA_SOURCE_URI=localhost:5444/edb
+$ ./pgx_exporter <flags>
+
 ```
 
 To build the dockerfile, run `go run mage.go docker`.
 
-This will build the docker image as `wrouesnel/postgres_exporter:latest`. This
+This will build the default container image as `gcr.io/edb-oscar/pgx_exporter.ubi:latest`. This
 is a minimal docker image containing *just* postgres_exporter. By default no SSL
 certificates are included, if you need to use SSL you should either bind-mount
 `/etc/ssl/certs/ca-certificates.crt` or derive a new image containing them.
 
 ### Vendoring
-Package vendoring is handled with [`govendor`](https://github.com/kardianos/govendor)
+We use go module for everythign so no need for vendorin
 
 ### Flags
 
@@ -191,8 +190,8 @@ BEGIN
   IF NOT EXISTS (
           SELECT                       -- SELECT list can stay empty for this
           FROM   pg_catalog.pg_user
-          WHERE  usename = 'postgres_exporter') THEN
-    CREATE USER postgres_exporter;
+          WHERE  usename = 'pgx_exporter') THEN
+    CREATE USER pgx_exporter;
   END IF;
 END;
 $$ language plpgsql;
@@ -200,14 +199,14 @@ $$ language plpgsql;
 SELECT __tmp_create_user();
 DROP FUNCTION __tmp_create_user();
 
-ALTER USER postgres_exporter WITH PASSWORD 'password';
-ALTER USER postgres_exporter SET SEARCH_PATH TO postgres_exporter,pg_catalog;
+ALTER USER pgx_exporter WITH PASSWORD 'password';
+ALTER USER pgx_exporter SET SEARCH_PATH TO pgx_exporter,pg_catalog;
 
 -- If deploying as non-superuser (for example in AWS RDS), uncomment the GRANT
 -- line below and replace <MASTER_USER> with your root user.
 -- GRANT postgres_exporter TO <MASTER_USER>;
-CREATE SCHEMA IF NOT EXISTS postgres_exporter;
-GRANT USAGE ON SCHEMA postgres_exporter TO postgres_exporter;
+CREATE SCHEMA IF NOT EXISTS pgx_exporter;
+GRANT USAGE ON SCHEMA pgx_exporter TO pgx_exporter;
 
 CREATE OR REPLACE FUNCTION get_pg_stat_activity() RETURNS SETOF pg_stat_activity AS
 $$ SELECT * FROM pg_catalog.pg_stat_activity; $$
@@ -215,11 +214,11 @@ LANGUAGE sql
 VOLATILE
 SECURITY DEFINER;
 
-CREATE OR REPLACE VIEW postgres_exporter.pg_stat_activity
+CREATE OR REPLACE VIEW pgx_exporter.pg_stat_activity
 AS
   SELECT * from get_pg_stat_activity();
 
-GRANT SELECT ON postgres_exporter.pg_stat_activity TO postgres_exporter;
+GRANT SELECT ON pgx_exporter.pg_stat_activity TO pgx_exporter;
 
 CREATE OR REPLACE FUNCTION get_pg_stat_replication() RETURNS SETOF pg_stat_replication AS
 $$ SELECT * FROM pg_catalog.pg_stat_replication; $$
@@ -227,11 +226,11 @@ LANGUAGE sql
 VOLATILE
 SECURITY DEFINER;
 
-CREATE OR REPLACE VIEW postgres_exporter.pg_stat_replication
+CREATE OR REPLACE VIEW pgx_exporter.pg_stat_replication
 AS
   SELECT * FROM get_pg_stat_replication();
 
-GRANT SELECT ON postgres_exporter.pg_stat_replication TO postgres_exporter;
+GRANT SELECT ON pgx_exporter.pg_stat_replication TO postgres_exporter;
 ```
 
 > **NOTE**
@@ -239,10 +238,3 @@ GRANT SELECT ON postgres_exporter.pg_stat_replication TO postgres_exporter;
 > ```
 > DATA_SOURCE_NAME=postgresql://postgres_exporter:password@localhost:5432/postgres?sslmode=disable
 > ```
-
-# Hacking
-* To build a copy for your current architecture run `go run mage.go binary` or just `go run mage.go`
-  This will create a symlink to the just built binary in the root directory.
-* To build release tar balls run `go run mage.go release`.
-* Build system is a bit temperamental at the moment since the conversion to mage - I am working on getting it
-  to be a perfect out of the box experience, but am time-constrained on it at the moment.

@@ -47,7 +47,7 @@ type Exporter struct {
 	// only, since it just points to the global.
 	builtinMetricMaps map[string]map[string]ColumnMapping
 
-	disableDefaultMetrics, disableSettingsMetrics, autoDiscoverDatabases bool
+	disableDefaultMetrics, disableSettingsMetrics, autoDiscoverDatabases, buildURI bool
 
 	excludeDatabases []string
 	dsn              []string
@@ -138,10 +138,12 @@ func (e *Exporter) checkMapVersions(ch chan<- prometheus.Metric, server *Server)
 	var versionString string
 	err = versionRow.Scan(&versionString)
 	if err != nil {
+		log.Debugf("unable to select version: %v", err)
 		return fmt.Errorf("Error scanning version string on %q: %v", server, err)
 	}
 	semanticVersion, err := parseVersion(versionString)
 	if err != nil {
+		log.Debugf("unable to parse semantic version: %v", err)
 		return fmt.Errorf("Error parsing version string on %q: %v", server, err)
 	}
 	if !e.disableDefaultMetrics && semanticVersion.LT(lowestSupportedVersion) {
@@ -264,6 +266,7 @@ func (e *Exporter) discoverDatabaseDSNs() []string {
 		}
 		for _, databaseName := range databaseNames {
 			if contains(e.excludeDatabases, databaseName) {
+				log.Debugf("database is being excluded: %s", databaseName)
 				continue
 			}
 			parsedDSN.Path = databaseName
@@ -284,6 +287,7 @@ func (e *Exporter) discoverDatabaseDSNs() []string {
 func (e *Exporter) scrapeDSN(ch chan<- prometheus.Metric, dsn string) error {
 	server, err := e.servers.GetServer(dsn)
 	if err != nil {
+		log.Debugf("Get of the server for dsn failed: %s", dsn)
 		return &ErrorConnectToServer{fmt.Sprintf("Error opening connection to database (%s): %s", loggableDSN(dsn), err)}
 	}
 

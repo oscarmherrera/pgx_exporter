@@ -46,3 +46,10 @@ func WithConstantLabels(s string) ExporterOpt {
 		e.constantLabels = parseConstLabels(s)
 	}
 }
+
+// WithConstantLabels configures constant labels.
+func BuildURI(f bool) ExporterOpt {
+	return func(e *Exporter) {
+		e.buildURI = f
+	}
+}

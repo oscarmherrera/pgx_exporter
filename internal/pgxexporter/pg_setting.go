@@ -41,6 +41,7 @@ func querySettings(ch chan<- prometheus.Metric, server *Server) error {
 		s := &pgSetting{}
 		err = rows.Scan(&s.name, &s.setting, &s.unit, &s.shortDesc, &s.vartype)
 		if err != nil {
+			log.Debugf("unable to scan row for pg settings on %v", server)
 			return fmt.Errorf("Error retrieving rows on %q: %s %v", server, namespace, err)
 		}
 

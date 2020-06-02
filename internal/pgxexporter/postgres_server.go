@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/blang/semver"
-	pgxpool "github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4/pgxpool"
 	//	pgx "github.com/jackc/pgx/v4"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
@@ -47,10 +47,12 @@ func NewServer(dsn string, opts ...ServerOpt) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	log.Debug("Configuring database with DSN:", dsn)
 	config, err := pgxpool.ParseConfig(dsn)
 	config.MinConns = 1
 	config.MaxConns = 3
+
+	log.Debugf("Database configuration to be used: %v", config)
 
 	conn, err := pgxpool.ConnectConfig(context.TODO(), config)
 	if err != nil {
@@ -76,11 +78,12 @@ func NewServer(dsn string, opts ...ServerOpt) (*Server, error) {
 // Close disconnects from Postgres.
 func (s *Server) Close() {
 	s.db.Close()
-	log.Info("database connection pool for this server:", s)
+	log.Debug("database connection pool for this server:", s)
 }
 
 // Ping checks connection availability and possibly invalidates the connection if it fails.
 func (s *Server) Ping() error {
+	log.Debug("Pinging database server")
 	conn, err := s.db.Acquire(context.Background())
 	if err != nil {
 		log.Errorf("unable to acquire db connect: %v", err)

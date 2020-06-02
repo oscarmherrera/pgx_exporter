@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/blang/semver"
+	"github.com/prometheus/common/log"
 	"regexp"
 )
 
@@ -49,6 +50,7 @@ func parseVersion(versionString string) (semver.Version, error) {
 	if len(submatches) > 1 {
 		return semver.ParseTolerant(submatches[1])
 	}
+	log.Debugf("unable to find a semver version to match: %v", submatches)
 	return semver.Version{},
 		errors.New(fmt.Sprintln("Could not find a postgres version in string:", versionString))
 }

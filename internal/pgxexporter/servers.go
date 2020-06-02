@@ -1,6 +1,7 @@
 package pgxexporter
 
 import (
+	"github.com/prometheus/common/log"
 	"sync"
 )
 
@@ -28,8 +29,10 @@ func (s *Servers) GetServer(dsn string) (*Server, error) {
 	if !ok {
 		server, err = NewServer(dsn, s.opts...)
 		if err != nil {
+			log.Error("Unable to create new server: ", err)
 			return nil, err
 		}
+		log.Debug("Got a valid database connection for server", server)
 		s.servers[dsn] = server
 	}
 	if err = server.Ping(); err != nil {

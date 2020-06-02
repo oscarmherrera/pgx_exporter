@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/blang/semver"
 	"github.com/jackc/pgproto3/v2"
-	pgx "github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"gopkg.in/yaml.v2"
@@ -256,6 +256,7 @@ func queryDatabases(server *Server) ([]string, error) {
 
 	rows, err := conn.Conn().Query(ctx, "SELECT datname FROM pg_database WHERE datallowconn = true AND datistemplate = false") // nolint: safesql
 	if err != nil {
+		log.Debugln("error connecting for query to get databases", err)
 		return nil, fmt.Errorf("Error retrieving databases: %v", err)
 	}
 	defer rows.Close() // nolint: errcheck
@@ -265,6 +266,7 @@ func queryDatabases(server *Server) ([]string, error) {
 	for rows.Next() {
 		err = rows.Scan(&databaseName)
 		if err != nil {
+			log.Debugln("error scanning rows of available databases", err)
 			return nil, errors.New(fmt.Sprintln("Error retrieving rows:", err))
 		}
 		result = append(result, databaseName)
@@ -342,6 +344,7 @@ func queryNamespaceMapping(ch chan<- prometheus.Metric, server *Server, namespac
 		columnData, err = rows.Values()
 		//		err = rows.Scan(scanArgs...)
 		if err != nil {
+			log.Debugln("error retrieving row", err)
 			return []error{}, errors.New(fmt.Sprintln("Error retrieving rows:", namespace, err))
 		}
 
@@ -378,6 +381,7 @@ func queryNamespaceMapping(ch chan<- prometheus.Metric, server *Server, namespac
 				// unexpected anyway.
 				value, ok := DBToFloat64(columnData[idx])
 				if !ok {
+					log.Debugln("detail: unparseable column type - discarding: ", namespace, columnName, err)
 					nonfatalErrors = append(nonfatalErrors, errors.New(fmt.Sprintln("Unparseable column type - discarding: ", namespace, columnName, err)))
 					continue
 				}

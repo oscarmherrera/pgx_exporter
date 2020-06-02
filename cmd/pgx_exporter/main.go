@@ -13,9 +13,11 @@ import (
 
 // Version is set during build to the git describe version
 // (semantic version)-(commitish) form.
-//var Version = "0.5.1"
+//
+var Version = "1.0.0"
 
 var (
+	buildURI               = kingpin.Flag("build-uri", "the exporter will build the uri based on DATA_SOURCE_PASS and DATA_SOURCE_USER and the HOSTNAME environment variable").Default("true").Envar("PGXEXPORTER_BUILD_URI").Bool()
 	listenAddress          = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9187").Envar("PGXEXPORTER_WEB_LISTEN_ADDRESS").String()
 	metricPath             = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("PGXEXPORTER_WEB_TELEMETRY_PATH").String()
 	disableDefaultMetrics  = kingpin.Flag("disable-default-metrics", "Do not include default metrics.").Default("false").Envar("PGXEXPORTER_DISABLE_DEFAULT_METRICS").Bool()
@@ -28,10 +30,12 @@ var (
 )
 
 func main() {
+
 	kingpin.Version(fmt.Sprintf("pgx_exporter %s (built with %s)\n", Version, runtime.Version()))
 	log.AddFlags(kingpin.CommandLine)
 	kingpin.Parse()
 
+	log.Info("Starting PGX_Exporter")
 	// landingPage contains the HTML served at '/'.
 	// TODO: Make this nicer and more informative.
 	var landingPage = []byte(`<html>
@@ -49,7 +53,7 @@ func main() {
 		return
 	}
 
-	dsn := pgxx.GetDataSources()
+	dsn := pgxx.GetDataSources(*buildURI)
 	if len(dsn) == 0 {
 		log.Fatal("couldn't find environment variables describing the datasource to use")
 	}
@@ -61,6 +65,7 @@ func main() {
 		pgxx.WithUserQueriesPath(*queriesPath),
 		pgxx.WithConstantLabels(*constantLabelsList),
 		pgxx.ExcludeDatabases(*excludeDatabases),
+		pgxx.BuildURI(*buildURI),
 	)
 	defer func() {
 		exporter.CloseAllServers()

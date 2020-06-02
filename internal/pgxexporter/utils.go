@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"math"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -218,7 +220,7 @@ type ErrorConnectToServer struct {
 // DATA_SOURCE_NAME always wins so we do not break older versions
 // reading secrets from files wins over secrets in environment variables
 // DATA_SOURCE_NAME > DATA_SOURCE_{USER|PASS}_FILE > DATA_SOURCE_{USER|PASS}
-func getDataSources() []string {
+func getDataSources(buildURI bool) []string {
 	var dsn = os.Getenv("DATA_SOURCE_NAME")
 	if len(dsn) == 0 {
 		var user string
@@ -248,6 +250,15 @@ func getDataSources() []string {
 		uri := os.Getenv("DATA_SOURCE_URI")
 		dsn = "postgresql://" + ui + "@" + uri
 
+		config, err := pgxpool.ParseConfig(dsn)
+		if err != nil {
+			log.Error("Invalid DSN provided in URI", dsn)
+		}
+		if buildURI == true {
+			log.Debugln("changing the hostname to the env variable.")
+			config.ConnConfig.Host = os.Getenv("HOSTNAME")
+		}
+
 		return []string{dsn}
 	}
 	return strings.Split(dsn, ",")
@@ -269,8 +280,8 @@ func contains(a []string, x string) bool {
 *
  */
 
-func GetDataSources() []string {
-	return getDataSources()
+func GetDataSources(buildURI bool) []string {
+	return getDataSources(buildURI)
 }
 
 // Error returns error
@@ -284,4 +295,9 @@ func ParseFingerprint(url string) (string, error) {
 
 func ParseConstLabels(s string) prometheus.Labels {
 	return parseConstLabels(s)
+}
+
+func CaseInsensitiveReplace(subject string, search string, replace string) string {
+	searchRegex := regexp.MustCompile("(?i)" + search)
+	return searchRegex.ReplaceAllString(subject, replace)
 }

@@ -1,6 +1,7 @@
 package pgxexporter
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v4"
@@ -8,10 +9,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"math"
 	"net/url"
 	"os"
 	"regexp"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 	"time"
@@ -257,6 +261,12 @@ func getDataSources(buildURI bool) []string {
 		if buildURI == true {
 			log.Debugln("changing the hostname to the env variable.")
 			config.ConnConfig.Host = os.Getenv("HOSTNAME")
+			dsn = fmt.Sprintf("postgresql://%s:%s@%s:%d/%s",
+				config.ConnConfig.User,
+				config.ConnConfig.Password,
+				config.ConnConfig.Host,
+				config.ConnConfig.Port,
+				config.ConnConfig.Database)
 		}
 
 		return []string{dsn}
@@ -300,4 +310,54 @@ func ParseConstLabels(s string) prometheus.Labels {
 func CaseInsensitiveReplace(subject string, search string, replace string) string {
 	searchRegex := regexp.MustCompile("(?i)" + search)
 	return searchRegex.ReplaceAllString(subject, replace)
+}
+
+//FetchPod returns the Pod resource with the name in the namespace
+func fetchPod(name, namespace string, client client.Client) (*corev1.Pod, error) {
+	pod := &corev1.Pod{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, pod)
+	return pod, err
+}
+
+func WaitForDatabaseReadiness(dsn string) error {
+	// Ping checks connection availability and possibly invalidates the connection if it fails.
+	log.Debug("Pinging database server")
+
+	connConfig, err := pgx.ParseConfig(dsn)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i <= 60; i++ {
+		time.Sleep(5 * time.Second)
+
+		conn, err := pgx.ConnectConfig(context.Background(), connConfig)
+		if err != nil {
+			log.Errorf("Waiting For Database: Not Ready Yet -  %v", err)
+			if i > 60 {
+				return errors.New("Waiting For Database: Waiting for 600 seconds, exiting")
+			}
+			if conn != nil {
+				conn.Close(context.Background())
+			}
+			continue
+		}
+		log.Info("Waiting For Database: We connected ")
+		log.Info("Waiting For Database: Trying a Ping ")
+		err = conn.Ping(context.Background())
+		// okay connected but the database may not be ready
+		if err != nil {
+			log.Errorf("Waiting For Database: Ping Failed %v", err)
+			if i > 60 {
+				conn.Close(context.Background())
+				return errors.New("Waiting For Database: Waiting for 600 seconds, exiting")
+			}
+			log.Info("Waiting For Database: We are connected but Ping Failed waiting again.")
+			conn.Close(context.Background())
+			continue
+		}
+		log.Info("Waiting For Database: Ping Success")
+		break
+	}
+	return nil
 }

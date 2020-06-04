@@ -57,6 +57,11 @@ func main() {
 	if len(dsn) == 0 {
 		log.Fatal("couldn't find environment variables describing the datasource to use")
 	}
+	//Lets pause and wait for 1 minute for the database to come up
+	err := pgxx.WaitForDatabaseReadiness(dsn[0])
+	if err != nil {
+		log.Fatal("could not connect to a database")
+	}
 
 	exporter := pgxx.NewExporter(dsn,
 		pgxx.DisableDefaultMetrics(*disableDefaultMetrics),
